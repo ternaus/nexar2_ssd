@@ -1,30 +1,20 @@
 from flask import Flask, render_template, Response
+from camera import VideoCamera
 import cv2
 
-class VideoCamera(object):
-    def __init__(self):
-        self.video = cv2.VideoCapture(0)
-
-    def __del__(self):
-        self.video.release()
-
-    def get_frame(self):
-        success, image = self.video.read()
-        ret, jpeg = cv2.imencode('.jpg', image)
-        print('hi')
-        return jpeg.tobytes()
-
 app = Flask(__name__)
+
 
 @app.route('/')
 def index():
 	return render_template('index.html')
 
+
 def gen(camera):
 	while True:
 		frame = camera.get_frame()
-		yield (b'--frame\r\n'
-			     b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r1\n')
+		yield b'--frame\r\n' \
+			     b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r1\n'
 
 
 @app.route('/video_feed')

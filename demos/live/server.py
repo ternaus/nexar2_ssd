@@ -22,7 +22,7 @@ import struct
 import pickle
 
 PORT_NUMBER = 5000
-SIZE = 4096
+SIZE = 3200
 hostName = gethostbyname('0.0.0.0')
 
 trained_model = 'weights/ssd_300_VOC0712.pth'
@@ -63,19 +63,19 @@ print("Test server listening on port {0}\n".format(PORT_NUMBER))
 print("Connection address: ", addr)
 
 data = ''
-payload_size = struct.calcsize("L")
+# payload_size = struct.calcsize("L")
 while True:
-    while len(data) < payload_size:
-        data += conn.recv(SIZE)
-    packed_msg_size = data[:payload_size]
-    data = data[payload_size:]
-    msg_size = struct.unpack("H", packed_msg_size)[0]
-    while len(data) < msg_size:
-        data += conn.recv(4096)
-    frame_data = data[:msg_size]
-    data = data[msg_size:]
-    frame = pickle.loads(frame_data)
-    # i = cv2.imdecode(np.fromstring(data, dtype=np.float64), cv2.IMREAD_COLOR)
+    # while len(data) < payload_size:
+    data = conn.recv(SIZE)
+    # packed_msg_size = data[:payload_size]
+    # data = data[payload_size:]
+    # msg_size = struct.unpack("H", packed_msg_size)[0]
+    # while len(data) < msg_size:
+    #     data += conn.recv(4096)
+    # frame_data = data[:msg_size]
+    # data = data[msg_size:]
+    # frame = pickle.loads(frame_data)
+    i = cv2.imdecode(np.fromstring(data, dtype=np.float32), cv2.IMREAD_COLOR)
     if i is None:
         continue
     data = predict(i)
