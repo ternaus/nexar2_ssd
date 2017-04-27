@@ -16,7 +16,7 @@ from cache import server_ip, parse_args
 args = parse_args()
 
 SERVER_IP = str(server_ip(args.ip))
-print("SERVER_IP:",SERVER_IP)
+print("SERVER_IP:", SERVER_IP)
 PORT_NUMBER = 5000
 SIZE = 3200
 print("Test client sending packets to IP {0}, via port {1}\n"

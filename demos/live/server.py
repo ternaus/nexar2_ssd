@@ -12,14 +12,14 @@ import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from sys import platform as sys_pf
-from data import VOC_CLASSES as labelmap
-import torch.utils.data as data
-from data import BaseTransform
-from ssd import build_ssd
+# import torch.utils.data as data
 import cv2
 import numpy as np
 import struct
 import pickle
+
+from ..data import BaseTransform, VOC_CLASSES as labelmap
+from ssd import build_ssd
 
 PORT_NUMBER = 5000
 SIZE = 3200
