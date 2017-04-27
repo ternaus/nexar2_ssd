@@ -4,20 +4,18 @@ Ellis Brown, Max deGroot
 """
 
 import sys
-#import time
+import os
 from socket import socket, gethostbyname, AF_INET, SOCK_STREAM
 import torch
-#import torch.nn as nn
 import torch.backends.cudnn as cudnn
-#import torchvision.transforms as transforms
 from torch.autograd import Variable
-#from sys import platform as sys_pf
-# import torch.utils.data as data
 import cv2
 import numpy as np
-#import struct
-#import pickle
 
+
+# add ssd main to sys path (I viscerally hate doing this)
+base = os.path.dirname(os.path.dirname(os.getcwd()))
+sys.path.append(base)
 from data import BaseTransform, VOC_CLASSES as labelmap
 from ssd import build_ssd
 
@@ -46,10 +44,10 @@ def predict(frame):
     for i in range(detections.size(1)):
         j = 0
         while detections[0, i, j, 0] >= 0.4:
-            pt = (detections[0, i, j, 1:]*scale).cpu().numpy()
+            pt = (detections[0, i, j, 1:] * scale).cpu().numpy()
             cv2.rectangle(frame, (int(pt[0]), int(pt[1])), (int(pt[2]),
-                          int(pt[3])), colors[i % 3], 2)
-            cv2.putText(frame, labelmap[i-1], (int(pt[0]), int(pt[1])), font,
+                                                            int(pt[3])), colors[i % 3], 2)
+            cv2.putText(frame, labelmap[i - 1], (int(pt[0]), int(pt[1])), font,
                         2, (255, 255, 255), 2, cv2.LINE_AA)
             j += 1
     return frame

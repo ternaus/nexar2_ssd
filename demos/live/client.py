@@ -38,11 +38,12 @@ while True:
     ret, jpeg = cv2.imencode('.jpg', frame)
     # jpeg = jpeg.tobytes()
     # s.send((b'--frame\r\n'
-	# 	    b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n\r1\n'))
+    # 	    b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n\r1\n'))
     try:
         s.send(jpeg.tostring())
         data = s.recv(SIZE)
-        i = cv2.imdecode(np.fromstring(data, dtype=np.float32), cv2.IMREAD_COLOR)
+        i = cv2.imdecode(np.fromstring(
+            data, dtype=np.float32), cv2.IMREAD_COLOR)
         print(i)
     except ConnectionResetError:
         print('connection reset')
