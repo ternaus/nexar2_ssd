@@ -4,21 +4,21 @@ Ellis Brown, Max deGroot
 """
 
 import sys
-import time
+#import time
 from socket import socket, gethostbyname, AF_INET, SOCK_STREAM
 import torch
-import torch.nn as nn
+#import torch.nn as nn
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
+#import torchvision.transforms as transforms
 from torch.autograd import Variable
-from sys import platform as sys_pf
+#from sys import platform as sys_pf
 # import torch.utils.data as data
 import cv2
 import numpy as np
-import struct
-import pickle
+#import struct
+#import pickle
 
-from ..data import BaseTransform, VOC_CLASSES as labelmap
+from data import BaseTransform, VOC_CLASSES as labelmap
 from ssd import build_ssd
 
 PORT_NUMBER = 5000
