@@ -126,4 +126,4 @@ data/ssd_dataloader.py
 
 
 # demo ip cache
-demos/live/ip_cache.txt
+*ip_cache.txt

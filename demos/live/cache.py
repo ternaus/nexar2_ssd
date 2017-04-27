@@ -11,7 +11,8 @@ import ipaddress
 import os.path
 import sys
 
-IP_FILE = 'ip_cache.txt'
+DIR = os.path.dirname(os.path.realpath(__file__))
+IP_FILE = DIR + '/ip_cache.txt'
 
 
 def parse_args(argv=None):
