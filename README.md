@@ -67,7 +67,7 @@ wget https://s3.amazonaws.com/amdegroot-models/vgg16_reducedfc.pth
 - To train SSD using the train script simply specify the parameters listed in `train.py` as a flag or manually change them.
 
 ```Shell
-python train.py
+python -m ssd_pytorch.train
 ```
 
 - Note:
@@ -80,7 +80,7 @@ python train.py
 To evaluate a trained network:
 
 ```Shell
-python eval.py
+python -m ssd_pytorch.eval
 ```
 
 You can specify the parameters listed in the `eval.py` file by flagging them or manually changing them.  
