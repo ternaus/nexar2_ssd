@@ -1,10 +1,12 @@
+import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from layers import *
-from data import v2
-import os
+
+from .layers import PriorBox, L2Norm, Detect
+from .data import v2
 
 
 class SSD(nn.Module):
@@ -112,7 +114,8 @@ class SSD(nn.Module):
         other, ext = os.path.splitext(base_file)
         if ext == '.pkl' or '.pth':
             print('Loading weights into state dict...')
-            self.load_state_dict(torch.load(base_file, map_location=lambda storage, loc: storage))
+            self.load_state_dict(torch.load(
+                base_file, map_location=lambda storage, loc: storage))
             print('Finished!')
         else:
             print('Sorry only .pth and .pkl files supported.')

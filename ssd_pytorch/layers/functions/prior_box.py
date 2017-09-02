@@ -2,6 +2,7 @@ import torch
 from math import sqrt as sqrt
 from itertools import product as product
 
+
 class PriorBox(object):
     """Compute priorbox coordinates in center-offset form for each source
     feature map.

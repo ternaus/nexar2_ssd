@@ -1,17 +1,15 @@
 from __future__ import print_function
-import sys
 import os
 import argparse
+
 import torch
-import torch.nn as nn
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
 from torch.autograd import Variable
-from data import VOCroot, VOC_CLASSES as labelmap
-from PIL import Image
-from data import AnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
-import torch.utils.data as data
-from ssd import build_ssd
+
+from .data import VOCroot, VOC_CLASSES as labelmap
+from .data import AnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
+from .ssd import build_ssd
+
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
 parser.add_argument('--trained_model', default='weights/ssd_300_VOC0712.pth',

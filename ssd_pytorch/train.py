@@ -1,21 +1,25 @@
+import argparse
 import os
+import time
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 import torch.nn.init as init
-import argparse
 from torch.autograd import Variable
 import torch.utils.data as data
-from data import v2, v1, AnnotationTransform, VOCDetection, detection_collate, VOCroot, VOC_CLASSES
-from utils.augmentations import SSDAugmentation
-from layers.modules import MultiBoxLoss
-from ssd import build_ssd
-import numpy as np
-import time
+
+from .data import v2, v1, AnnotationTransform, VOCDetection, detection_collate, VOCroot, VOC_CLASSES
+from .utils.augmentations import SSDAugmentation
+from .layers.modules import MultiBoxLoss
+from .ssd import build_ssd
+
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
+
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
 parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
