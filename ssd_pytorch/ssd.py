@@ -26,7 +26,7 @@ class SSD(nn.Module):
         head: "multibox head" consists of loc and conf conv layers
     """
 
-    def __init__(self, phase, base, extras, head, num_classes):
+    def __init__(self, phase, base, extras, head, num_classes, top_k=200):
         super(SSD, self).__init__()
         self.phase = phase
         self.num_classes = num_classes
@@ -46,7 +46,7 @@ class SSD(nn.Module):
 
         if phase == 'test':
             self.softmax = nn.Softmax()
-            self.detect = Detect(num_classes, 0, 200, 0.01, 0.45)
+            self.detect = Detect(num_classes, 0, top_k, 0.01, 0.45)
 
     def forward(self, x):
         """Applies network layers and ops on input image(s) x.
@@ -195,7 +195,7 @@ mbox = {
 }
 
 
-def build_ssd(phase, size=300, num_classes=21):
+def build_ssd(phase, size=300, num_classes=21, top_k=200):
     if phase != "test" and phase != "train":
         print("Error: Phase not recognized")
         return
@@ -203,6 +203,9 @@ def build_ssd(phase, size=300, num_classes=21):
         print("Error: Sorry only SSD300 is supported currently!")
         return
 
-    return SSD(phase, *multibox(vgg(base[str(size)], 3),
-                                add_extras(extras[str(size)], 1024),
-                                mbox[str(size)], num_classes), num_classes)
+    return SSD(phase,
+               *multibox(vgg(base[str(size)], 3),
+                         add_extras(extras[str(size)], 1024),
+                         mbox[str(size)], num_classes),
+               num_classes=num_classes,
+               top_k=top_k)
