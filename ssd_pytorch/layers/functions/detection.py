@@ -42,7 +42,8 @@ class Detect(Function):
         else:
             conf_preds = conf_data.view(num, num_priors,
                                         self.num_classes).transpose(2, 1)
-            self.output.expand_(num, self.num_classes, self.top_k, 5)
+            self.output = self.output.expand(
+                num, self.num_classes, self.top_k, 5).clone()
 
         # Decode predictions into bboxes.
         for i in range(num):
