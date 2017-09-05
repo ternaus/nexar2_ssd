@@ -35,15 +35,16 @@ class Detect(Function):
         """
         num = loc_data.size(0)  # batch size
         num_priors = prior_data.size(0)
-        self.output.zero_()
         if num == 1:
             # size batch x num_classes x num_priors
             conf_preds = conf_data.t().contiguous().unsqueeze(0)
         else:
             conf_preds = conf_data.view(num, num_priors,
                                         self.num_classes).transpose(2, 1)
-            if self.output.size(0) != num:
-                self.output = torch.zeros(num, self.num_classes, self.top_k, 5)
+        if self.output.size(0) == num:
+            self.output.zero_()
+        else:
+            self.output = torch.zeros(num, self.num_classes, self.top_k, 5)
 
         # Decode predictions into bboxes.
         for i in range(num):
