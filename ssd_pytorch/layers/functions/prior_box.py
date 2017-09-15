@@ -26,6 +26,8 @@ class PriorBox(object):
         self.aspect_ratios = cfg['aspect_ratios']
         self.clip = cfg['clip']
         self.version = cfg['name']
+        if self.version not in ['v1', 'v2']:
+            raise ValueError('Version "{}" not supported'.format(self.version))
         for v in self.variance:
             if v <= 0:
                 raise ValueError('Variances must be greater than 0')
