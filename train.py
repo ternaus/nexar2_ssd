@@ -72,7 +72,7 @@ if not os.path.exists(args.save_folder):
 
 train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
 # train_sets = 'train'
-ssd_dim = 300    # only support 300 now
+ssd_dim = 300    # only support 300 and 512 now
 means = (104, 117, 123)    # only support voc now
 num_classes = len(VOC_CLASSES) + 1
 batch_size = args.batch_size
@@ -88,7 +88,7 @@ if args.visdom:
     import visdom
     viz = visdom.Visdom()
 
-ssd_net = build_ssd('train', 300, num_classes)
+ssd_net = build_ssd('train', ssd_dim, num_classes)
 net = ssd_net
 
 if args.cuda:
