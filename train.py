@@ -1,6 +1,7 @@
 import argparse
 import os
 import time
+from datetime import timedelta
 
 import numpy as np
 import torch
@@ -164,6 +165,7 @@ def train():
         shuffle=True,
         collate_fn=detection_collate,
         pin_memory=True)
+    sum_iter_time = 0
     for iteration in range(args.start_iter, max_iter):
         if (not batch_iterator) or (iteration % epoch_size == 0):
             # create batch iterator
@@ -202,10 +204,14 @@ def train():
         loss.backward()
         optimizer.step()
         t1 = time.time()
+        if iteration > 0:
+            sum_iter_time += t1 - t0
         loc_loss += loss_l.data[0]
         conf_loss += loss_c.data[0]
         if iteration % 10 == 0:
-            print('Timer: %.4f sec.' % (t1 - t0))
+            remaining_time = sum_iter_time / (iteration + 1) * (max_iter - iteration)
+            print('Timer: {:.4f} sec. Remaining: {}.'.format(
+                t1 - t0, str(timedelta(seconds=remaining_time)).split('.')[0]))
             print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
             if args.visdom and args.send_images_to_visdom:
                 random_batch_index = np.random.randint(images.size(0))
