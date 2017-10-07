@@ -53,6 +53,11 @@ parser.add_argument(
     help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
 parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
+parser.add_argument(
+    '--validate_dataset',
+    default=False,
+    type=bool,
+    help='Whether validate dataset (dataset should implement validate() method')
 args = parser.parse_args()
 
 print('Running with args:')
@@ -140,6 +145,11 @@ def train():
 
     dataset = VOCDetection(args.voc_root, train_sets,
                            SSDAugmentation(ssd_dim, means), AnnotationTransform())
+
+    if args.validate_dataset:
+        if not dataset.validate():
+            print('Existing because of validation errors')
+            return
 
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)

@@ -9,6 +9,7 @@ Updated by: Ellis Brown, Max deGroot
 import os
 import os.path
 import sys
+from tqdm import tqdm
 import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
@@ -120,6 +121,38 @@ class VOCDetection(data.Dataset):
 
     def __len__(self):
         return len(self.ids)
+
+    def _validate_item(self, img_id):
+        img = cv2.imread(self._imgpath % img_id)
+        if img is None:
+            return (False, 'Cannot read image')
+
+        annoation = ET.parse(self._annopath % img_id).getroot()
+        if not annoation:
+            return (False, 'Cannot read annotation')
+        height, width, channels = img.shape
+        bboxes = AnnotationTransform()(annoation, height, width)
+        for bbox in bboxes:
+            for v in bbox[:-1]:
+                if v < 0 or v >= 1.:
+                    return (False, 'Box out of image size')
+            if bbox[0] >= bbox[2]:
+                return (False, 'Wrong xmin/xmax')
+            if bbox[1] >= bbox[3]:
+                return (False, 'Wrong ymin/ymax')
+        return (True, 'Ok')
+
+    def validate(self):
+        print('Validating dataset ...')
+        broken_items = set()
+        for index in tqdm(range(self.__len__())):
+            img_id = self.ids[index]
+            ret, cause = self._validate_item(img_id)
+            if not ret:
+                broken_items.add((img_id, cause))
+        print('Broken item ids: {}'.format(broken_items))
+        print('Validation done.')
+        return len(broken_items) > 0
 
     def pull_item(self, index):
         img_id = self.ids[index]
