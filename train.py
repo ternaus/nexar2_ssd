@@ -56,7 +56,7 @@ parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root di
 parser.add_argument(
     '--validate_dataset',
     default=False,
-    type=bool,
+    action='store_true',
     help='Whether validate dataset (dataset should implement validate() method')
 args = parser.parse_args()
 

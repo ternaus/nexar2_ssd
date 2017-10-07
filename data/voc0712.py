@@ -131,7 +131,7 @@ class VOCDetection(data.Dataset):
         if not annoation:
             return (False, 'Cannot read annotation')
         height, width, channels = img.shape
-        bboxes = AnnotationTransform()(annoation, height, width)
+        bboxes = AnnotationTransform()(annoation, width, height)
         for bbox in bboxes:
             for v in bbox[:-1]:
                 if v < 0 or v >= 1.:
@@ -140,6 +140,10 @@ class VOCDetection(data.Dataset):
                 return (False, 'Wrong xmin/xmax')
             if bbox[1] >= bbox[3]:
                 return (False, 'Wrong ymin/ymax')
+            if bbox[0] + 5. / width >= bbox[2]:
+                return (False, 'Box is too small (in width)')
+            if bbox[1] + 5. / height >= bbox[3]:
+                return (False, 'Box is too small (in height)')
         return (True, 'Ok')
 
     def validate(self):
@@ -152,7 +156,7 @@ class VOCDetection(data.Dataset):
                 broken_items.add((img_id, cause))
         print('Broken item ids: {}'.format(broken_items))
         print('Validation done.')
-        return len(broken_items) > 0
+        return len(broken_items) == 0
 
     def pull_item(self, index):
         img_id = self.ids[index]
