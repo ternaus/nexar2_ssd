@@ -55,6 +55,11 @@ parser.add_argument('--save_folder', default='weights/', help='Location to save 
 parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
 args = parser.parse_args()
 
+print('Running with args:')
+for arg in vars(args):
+    print('    {}: {}'.format(arg, getattr(args, arg)))
+print()
+
 if args.cuda and torch.cuda.is_available():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
 else:
@@ -212,7 +217,7 @@ def train():
             remaining_time = sum_iter_time / (iteration + 1) * (max_iter - iteration)
             print('Timer: {:.4f} sec. Remaining: {}.'.format(
                 t1 - t0, str(timedelta(seconds=remaining_time)).split('.')[0]))
-            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
+            print('iter ' + repr(iteration) + '/' + repr(max_iter) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
             if args.visdom and args.send_images_to_visdom:
                 random_batch_index = np.random.randint(images.size(0))
                 viz.image(images.data[random_batch_index].cpu().numpy())
