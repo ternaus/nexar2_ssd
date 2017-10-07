@@ -5,8 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-from .layers import PriorBox, L2Norm, Detect
-from .data import v2
+from layers import PriorBox, L2Norm, Detect
+from data import v2
 
 
 class SSD(nn.Module):

@@ -11,10 +11,10 @@ import torch.nn.init as init
 from torch.autograd import Variable
 import torch.utils.data as data
 
-from .data import v2, v1, AnnotationTransform, VOCDetection, detection_collate, VOCroot, VOC_CLASSES
-from .utils.augmentations import SSDAugmentation
-from .layers.modules import MultiBoxLoss
-from .ssd import build_ssd
+from data import v2, v1, AnnotationTransform, VOCDetection, detection_collate, VOCroot, VOC_CLASSES
+from utils.augmentations import SSDAugmentation
+from layers.modules import MultiBoxLoss
+from ssd import build_ssd
 
 
 def str2bool(v):

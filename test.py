@@ -6,9 +6,9 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 
-from .data import VOCroot, VOC_CLASSES as labelmap
-from .data import AnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
-from .ssd import build_ssd
+from data import VOCroot, VOC_CLASSES as labelmap
+from data import AnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
+from ssd import build_ssd
 
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
