@@ -160,6 +160,8 @@ class VOCDetection(data.Dataset):
 
     def pull_item(self, index):
         img_id = self.ids[index]
+        # Once crashed on this id (array boundaries)
+        # img_id = ('/home/alex/data/VOCdevkit/VOC2012', '2009_000297')
 
         target = ET.parse(self._annopath % img_id).getroot()
         img = cv2.imread(self._imgpath % img_id)

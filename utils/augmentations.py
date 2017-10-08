@@ -280,7 +280,7 @@ class RandomSampleCrop(object):
                 m1 = (rect[0] < centers[:, 0]) * (rect[1] < centers[:, 1])
 
                 # mask in all gt boxes that under and to the right of centers
-                m2 = (rect[2] > centers[:, 0]) * (rect[3] > centers[:, 1])
+                m2 = (rect[2] - 1 > centers[:, 0]) * (rect[3] - 1 > centers[:, 1])
 
                 # mask in that both m1 and m2 are true
                 mask = m1 * m2
@@ -296,13 +296,12 @@ class RandomSampleCrop(object):
                 current_labels = labels[mask]
 
                 # should we use the box left and top corner or the crop's
-                current_boxes[:, :2] = np.maximum(current_boxes[:, :2],
-                                                  rect[:2])
+                current_boxes[:, :2] = np.maximum(current_boxes[:, :2], rect[:2])
+
                 # adjust to crop (by substracting crop's left,top)
                 current_boxes[:, :2] -= rect[:2]
 
-                current_boxes[:, 2:] = np.minimum(current_boxes[:, 2:],
-                                                  rect[2:])
+                current_boxes[:, 2:] = np.minimum(current_boxes[:, 2:], rect[2:] - 1)
                 # adjust to crop (by substracting crop's left,top)
                 current_boxes[:, 2:] -= rect[:2]
 
