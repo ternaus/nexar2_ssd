@@ -28,6 +28,11 @@ VOC_CLASSES = (  # always index 0
     'motorbike', 'person', 'pottedplant',
     'sheep', 'sofa', 'train', 'tvmonitor')
 
+VOC_CLASSES = [
+    'species_fourspot', 'species_grey sole', 'species_other', 'species_plaice', 'species_summer',
+    'species_windowpane', 'species_winter'
+]
+
 # for making bounding boxes pretty
 COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
           (0, 255, 255, 128), (255, 0, 255, 128), (255, 255, 0, 128))
@@ -100,7 +105,7 @@ class VOCDetection(data.Dataset):
     """
 
     def __init__(self, root, image_sets, transform=None, target_transform=None,
-                 dataset_name='VOC0712'):
+                 dataset_name='VOC0712', with_target=True):
         self.root = root
         self.image_set = image_sets
         self.transform = transform
@@ -109,6 +114,7 @@ class VOCDetection(data.Dataset):
         self._annopath = os.path.join('%s', 'Annotations', '%s.xml')
         self._imgpath = os.path.join('%s', 'JPEGImages', '%s.jpg')
         self.ids = list()
+        self.with_target = with_target
         for (year, name) in image_sets:
             rootpath = os.path.join(self.root, 'VOC' + year)
             for line in open(os.path.join(rootpath, 'ImageSets', 'Main', name + '.txt')):
@@ -163,7 +169,9 @@ class VOCDetection(data.Dataset):
         # Once crashed on this id (array boundaries)
         # img_id = ('/home/alex/data/VOCdevkit/VOC2012', '2009_000297')
 
-        target = ET.parse(self._annopath % img_id).getroot()
+        target = []
+        if self.with_target:
+            target = ET.parse(self._annopath % img_id).getroot()
         img = cv2.imread(self._imgpath % img_id)
         height, width, channels = img.shape
 
@@ -207,8 +215,10 @@ class VOCDetection(data.Dataset):
                 eg: ('001718', [('dog', (96, 13, 438, 332))])
         '''
         img_id = self.ids[index]
-        anno = ET.parse(self._annopath % img_id).getroot()
-        gt = self.target_transform(anno, 1, 1)
+        gt = []
+        if self.with_target:
+            anno = ET.parse(self._annopath % img_id).getroot()
+            gt = self.target_transform(anno, 1, 1)
         return img_id[1], gt
 
     def pull_tensor(self, index):

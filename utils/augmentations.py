@@ -270,8 +270,7 @@ class RandomSampleCrop(object):
                     continue
 
                 # cut the crop from the image
-                current_image = current_image[rect[1]:rect[3], rect[0]:rect[2],
-                                              :]
+                current_image = current_image[rect[1]:rect[3], rect[0]:rect[2], :]
 
                 # keep overlap with gt box IF center in sampled patch
                 centers = (boxes[:, :2] + boxes[:, 2:]) / 2.0
@@ -342,7 +341,7 @@ class RandomMirror(object):
         if random.randint(2):
             image = image[:, ::-1]
             boxes = boxes.copy()
-            boxes[:, 0::2] = width - boxes[:, 2::-2]
+            boxes[:, 0::2] = width - 1 - boxes[:, 2::-2]
         return image, boxes, classes
 
 
@@ -402,14 +401,14 @@ class SSDAugmentation(object):
         self.size = size
         self.augment = Compose([
             ConvertFromInts(),
-            ToAbsoluteCoords(),
-            PhotometricDistort(),
-            Expand(self.mean),
-            RandomSampleCrop(),
-            RandomMirror(),
-            ToPercentCoords(),
+            #ToAbsoluteCoords(),
+            #PhotometricDistort(),
+            #Expand(self.mean),
+            #RandomSampleCrop(),
+            #RandomMirror(),
+            #ToPercentCoords(),
             Resize(self.size),
-            SubtractMeans(self.mean)
+            #SubtractMeans(self.mean)
         ])
 
     def __call__(self, img, boxes, labels):
