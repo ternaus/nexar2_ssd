@@ -28,10 +28,10 @@ VOC_CLASSES = (  # always index 0
     'motorbike', 'person', 'pottedplant',
     'sheep', 'sofa', 'train', 'tvmonitor')
 
-VOC_CLASSES = [
-    'species_fourspot', 'species_grey sole', 'species_other', 'species_plaice', 'species_summer',
-    'species_windowpane', 'species_winter'
-]
+# VOC_CLASSES = [
+#     'species_fourspot', 'species_grey sole', 'species_other', 'species_plaice', 'species_summer',
+#     'species_windowpane', 'species_winter'
+# ]
 
 # for making bounding boxes pretty
 COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),

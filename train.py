@@ -37,7 +37,7 @@ parser.add_argument(
     default=0,
     type=int,
     help='Begin counting iterations starting from this value (should be used with resume)')
-parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda to train model')
+parser.add_argument('--cuda', default=False, type=str2bool, help='Use cuda to train model')
 parser.add_argument(
     '--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
@@ -174,13 +174,15 @@ def train():
                 title='Epoch SSD Training Loss',
                 legend=['Loc Loss', 'Conf Loss', 'Loss']))
     batch_iterator = None
+
     data_loader = data.DataLoader(
         dataset,
         batch_size,
         num_workers=args.num_workers,
         shuffle=True,
         collate_fn=detection_collate,
-        pin_memory=True)
+        pin_memory=args.cuda)
+
     sum_iter_time = 0
     for iteration in range(args.start_iter, max_iter):
         if (not batch_iterator) or (iteration % epoch_size == 0):
