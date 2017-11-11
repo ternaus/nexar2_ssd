@@ -12,20 +12,38 @@ to access the annotation in an effective manner data is split into separate csv
 from pathlib import Path
 
 import pandas as pd
-from tqdm import tqdm
+from PIL import Image
+from joblib import Parallel, delayed
+
+
+def save_annotation(x):
+    file_name, df = x
+    img = Image.open(str(img_path / file_name))
+
+    width, height = img.size
+
+    df.loc[:, 'width'] = width
+    df.loc[:, 'height'] = height
+
+    df.loc[:, 'x0'] /= width
+    df.loc[:, 'x1'] /= width
+
+    df.loc[:, 'y0'] /= height
+    df.loc[:, 'y1'] /= height
+
+    df.to_csv(str(annotation_path / (file_name[:-4] + '.csv')), index=False)
+
 
 if __name__ == '__main__':
+    num_threads = 20
+
     data_path = Path('data')
     annotation_path = data_path / 'annotations'
+    img_path = data_path / 'train'
+
     annotation_path.mkdir(exist_ok=True)
 
     labels = pd.read_csv(str(data_path / 'train_boxes.csv'))
     labels['label'] = 'car'  # merging all classes into one
 
-    labels['x0'] = labels['x0'].astype(int)
-    labels['y0'] = labels['y0'].astype(int)
-    labels['x1'] = labels['x1'].astype(int)
-    labels['y1'] = labels['y1'].astype(int)
-
-    for file_name, df in tqdm(labels.groupby('image_filename')):
-        df.to_csv(str(annotation_path / (file_name[:-4] + '.csv')))
+    Parallel(n_jobs=num_threads)(delayed(save_annotation)(x) for x in labels.groupby('image_filename'))
