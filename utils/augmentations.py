@@ -338,8 +338,7 @@ class Expand(object):
             (int(height * ratio), int(width * ratio), depth),
             dtype=image.dtype)
         expand_image[:, :, :] = self.mean
-        expand_image[int(top):int(top + height),
-        int(left):int(left + width)] = image
+        expand_image[int(top):int(top + height), int(left):int(left + width)] = image
         image = expand_image
 
         boxes = boxes.copy()
@@ -413,8 +412,8 @@ class SSDAugmentation(object):
             ConvertFromInts(),
             ToAbsoluteCoords(),
             PhotometricDistort(),
-            Expand(self.mean),
-            RandomSampleCrop(),
+            # Expand(self.mean),
+            # RandomSampleCrop(),
             RandomMirror(),
             ToPercentCoords(),
             Resize(self.size),
