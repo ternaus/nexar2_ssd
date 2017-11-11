@@ -20,6 +20,12 @@ if __name__ == '__main__':
     annotation_path.mkdir(exist_ok=True)
 
     labels = pd.read_csv(str(data_path / 'train_boxes.csv'))
+    labels['label'] = 'car'  # merging all classes into one
+
+    labels['x0'] = labels['x0'].astype(int)
+    labels['y0'] = labels['y0'].astype(int)
+    labels['x1'] = labels['x1'].astype(int)
+    labels['y1'] = labels['y1'].astype(int)
 
     for file_name, df in tqdm(labels.groupby('image_filename')):
         df.to_csv(str(annotation_path / (file_name[:-4] + '.csv')))
