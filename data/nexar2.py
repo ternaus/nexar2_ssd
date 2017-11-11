@@ -2,6 +2,8 @@
 
 """
 
+from pathlib import Path
+
 import cv2
 import numpy as np
 import pandas as pd
@@ -62,9 +64,9 @@ class NexarDetection(data.Dataset):
             (default: 'Nexar2')
     """
 
-    def __init__(self, root, image_sets, transform=None, target_transform=None, dataset_name='Nexar2'):
+    def __init__(self, root: Path, image_set, transform=None, target_transform=None, dataset_name='Nexar2'):
         self.root = root
-        self.image_set = image_sets
+        self.image_set = image_set
         self.transform = transform
         self.target_transform = target_transform
         self.name = dataset_name

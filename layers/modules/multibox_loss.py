@@ -62,13 +62,13 @@ class MultiBoxLoss(nn.Module):
                 priors shape: torch.size(num_priors,4)
 
             ground_truth (tensor): Ground truth boxes and labels for a batch,
-                shape: [batch_size,num_objs,5] (last idx is the label).
+                shape: [batch_size, num_objs,5] (last idx is the label).
         """
         loc_data, conf_data, priors = predictions
         num = loc_data.size(0)
         priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
-        num_classes = self.num_classes
+        # num_classes = self.num_classes
 
         # match priors (default boxes) and ground truth boxes
         loc_t = torch.Tensor(num, num_priors, 4)
@@ -86,7 +86,7 @@ class MultiBoxLoss(nn.Module):
         conf_t = Variable(conf_t, requires_grad=False)
 
         pos = conf_t > 0
-        num_pos = pos.sum(keepdim=True)
+        # num_pos = pos.sum(keepdim=True)
 
         # Localization Loss (Smooth L1)
         # Shape: [batch,num_priors,4]
@@ -110,7 +110,9 @@ class MultiBoxLoss(nn.Module):
         neg = idx_rank < num_neg.expand_as(idx_rank)
 
         # Confidence Loss Including Positive and Negative Examples
+
         pos_idx = pos.unsqueeze(2).expand_as(conf_data)
+
         neg_idx = neg.unsqueeze(2).expand_as(conf_data)
         conf_p = conf_data[(pos_idx + neg_idx).gt(0)].view(-1, self.num_classes)
         targets_weighted = conf_t[(pos + neg).gt(0)]

@@ -1,9 +1,10 @@
-import torch
-from torchvision import transforms
+import types
+
 import cv2
 import numpy as np
-import types
+import torch
 from numpy import random
+from torchvision import transforms
 
 
 def intersect(box_a, box_b):
@@ -25,10 +26,10 @@ def jaccard_numpy(box_a, box_b):
         jaccard overlap: Shape: [box_a.shape[0], box_a.shape[1]]
     """
     inter = intersect(box_a, box_b)
-    area_a = ((box_a[:, 2]-box_a[:, 0]) *
-              (box_a[:, 3]-box_a[:, 1]))  # [A,B]
-    area_b = ((box_b[2]-box_b[0]) *
-              (box_b[3]-box_b[1]))  # [A,B]
+    area_a = ((box_a[:, 2] - box_a[:, 0]) *
+              (box_a[:, 3] - box_a[:, 1]))  # [A,B]
+    area_b = ((box_b[2] - box_b[0]) *
+              (box_b[3] - box_b[1]))  # [A,B]
     union = area_a + area_b - inter
     return inter / union  # [A,B]
 
@@ -82,6 +83,9 @@ class SubtractMeans(object):
 class ToAbsoluteCoords(object):
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
+
+        assert np.all(0 <= boxes) and np.all(boxes < 1)
+
         boxes[:, 0] *= width
         boxes[:, 2] *= width
         boxes[:, 1] *= height
@@ -93,6 +97,11 @@ class ToAbsoluteCoords(object):
 class ToPercentCoords(object):
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
+
+        assert np.all(0 <= boxes[:, [0, 2]]) and np.all(boxes[:, [0, 2]] <= width)
+
+        assert np.all(0 <= boxes[:, [1, 3]]) and np.all(boxes[:, [1, 3]] <= height)
+
         boxes[:, 0] /= width
         boxes[:, 2] /= width
         boxes[:, 1] /= height
@@ -107,7 +116,7 @@ class Resize(object):
 
     def __call__(self, image, boxes=None, labels=None):
         image = cv2.resize(image, (self.size,
-                                 self.size))
+                                   self.size))
         return image, boxes, labels
 
 
@@ -218,6 +227,7 @@ class RandomSampleCrop(object):
             boxes (Tensor): the adjusted bounding boxes in pt form
             labels (Tensor): the class labels for each bbox
     """
+
     def __init__(self):
         self.sample_options = (
             # using entire original input image
@@ -260,7 +270,7 @@ class RandomSampleCrop(object):
                 top = random.uniform(height - h)
 
                 # convert to integer rect x1,y1,x2,y2
-                rect = np.array([int(left), int(top), int(left+w), int(top+h)])
+                rect = np.array([int(left), int(top), int(left + w), int(top + h)])
 
                 # calculate IoU (jaccard overlap) b/t the cropped and gt boxes
                 overlap = jaccard_numpy(boxes, rect)
@@ -317,15 +327,15 @@ class Expand(object):
 
         height, width, depth = image.shape
         ratio = random.uniform(1, 4)
-        left = random.uniform(0, width*ratio - width)
-        top = random.uniform(0, height*ratio - height)
+        left = random.uniform(0, width * ratio - width)
+        top = random.uniform(0, height * ratio - height)
 
         expand_image = np.zeros(
-            (int(height*ratio), int(width*ratio), depth),
+            (int(height * ratio), int(width * ratio), depth),
             dtype=image.dtype)
         expand_image[:, :, :] = self.mean
         expand_image[int(top):int(top + height),
-                     int(left):int(left + width)] = image
+        int(left):int(left + width)] = image
         image = expand_image
 
         boxes = boxes.copy()
@@ -401,14 +411,14 @@ class SSDAugmentation(object):
         self.size = size
         self.augment = Compose([
             ConvertFromInts(),
-            #ToAbsoluteCoords(),
-            #PhotometricDistort(),
-            #Expand(self.mean),
-            #RandomSampleCrop(),
-            #RandomMirror(),
-            #ToPercentCoords(),
+            ToAbsoluteCoords(),
+            PhotometricDistort(),
+            Expand(self.mean),
+            RandomSampleCrop(),
+            RandomMirror(),
+            ToPercentCoords(),
             Resize(self.size),
-            #SubtractMeans(self.mean)
+            SubtractMeans(self.mean)
         ])
 
     def __call__(self, img, boxes, labels):

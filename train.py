@@ -1,20 +1,21 @@
 import argparse
 import os
 import time
-from datetime import timedelta
+from pathlib import Path
 
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.nn.init as init
+import torch.optim as optim
 import torch.utils.data as data
-
+from torch.autograd import Variable
 
 from data import v2, v1, AnnotationTransform, NexarDetection, detection_collate, NEXAR_CLASSES
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
-
+from utils.augmentations import SSDAugmentation
 
 
 def str2bool(v):
@@ -33,23 +34,17 @@ parser.add_argument(
 parser.add_argument('--iterations', default=120000, type=int, help='Number of training iterations')
 parser.add_argument('--start_iter', default=0, type=int,
                     help='Begin counting iterations starting from this value (should be used with resume)')
-    default=0,
-    type=int,
-    help='Begin counting iterations starting from this value (should be used with resume)')
 parser.add_argument('--cuda', default=False, type=str2bool, help='Use cuda to train model')
+parser.add_argument('--device_ids', default='0', type=str, help='cuda device ids 0,1,2,3')
 parser.add_argument(
     '--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
 parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss at each iteration')
-parser.add_argument(
+parser.add_argument('--visdom', default=False, type=str2bool, help='Use visdom to for loss visualization')
 parser.add_argument('--send_images_to_visdom', type=str2bool, default=False,
                     help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
-    '--send_images_to_visdom',
-    type=str2bool,
-    default=False,
-    help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
 parser.add_argument('--root', default='data', help='Location of Nexar root directory')
 parser.add_argument(
@@ -76,8 +71,8 @@ if not os.path.exists(args.save_folder):
 
 train_sets = 'train'
 # train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
-ssd_dim = 300    # only support 300 and 512 now
-means = (104, 117, 123)    # only support voc now
+ssd_dim = 300  # only support 300 and 512 now
+means = (104, 117, 123)  # only support voc now
 num_classes = len(NEXAR_CLASSES) + 1
 batch_size = args.batch_size
 accum_batch_size = 32
@@ -99,7 +94,8 @@ ssd_net = build_ssd('train', ssd_dim, num_classes)
 net = ssd_net
 
 if args.cuda:
-    net = torch.nn.DataParallel(ssd_net)
+    device_ids = [int(x) for x in args.device_ids.split(',')]
+    net = torch.nn.DataParallel(ssd_net, device_ids=device_ids)
     cudnn.benchmark = True
 
 if args.resume:
@@ -141,13 +137,12 @@ criterion = MultiBoxLoss(
 def train():
     net.train()
     # loss counters
-    loc_loss = 0    # epoch
+    loc_loss = 0  # epoch
     conf_loss = 0
     epoch = 0
     print('Loading Dataset...')
 
-    dataset = NexarDetection(root, train_sets, SSDAugmentation(
-                           SSDAugmentation(ssd_dim, means), AnnotationTransform())
+    dataset = NexarDetection(root, train_sets, SSDAugmentation(ssd_dim, means), AnnotationTransform())
 
     if args.validate_dataset:
         if not dataset.validate():
@@ -185,7 +180,6 @@ def train():
         collate_fn=detection_collate,
         pin_memory=args.cuda)
 
-    sum_iter_time = 0
     for iteration in range(args.start_iter, max_iter):
         if (not batch_iterator) or (iteration % epoch_size == 0):
             # create batch iterator
@@ -196,10 +190,11 @@ def train():
             if args.visdom:
                 viz.line(
                     X=torch.ones((1, 3)).cpu() * epoch,
-                    Y=torch.Tensor([loc_loss, conf_loss, loc_loss + conf_loss]).unsqueeze(0).cpu() /
-                        loc_loss + conf_loss]).unsqueeze(0).cpu() / epoch_size,
+                    Y=torch.Tensor([loc_loss, conf_loss,
+                                    loc_loss + conf_loss]).unsqueeze(0).cpu() / epoch_size,
                     win=epoch_lot,
-                    update='append')
+                    update='append'
+                )
             # reset epoch loss counters
             loc_loss = 0
             conf_loss = 0
@@ -224,15 +219,11 @@ def train():
         loss.backward()
         optimizer.step()
         t1 = time.time()
-        if iteration > 0:
-            sum_iter_time += t1 - t0
         loc_loss += loss_l.data[0]
         conf_loss += loss_c.data[0]
         if iteration % 10 == 0:
-            remaining_time = sum_iter_time / (iteration + 1) * (max_iter - iteration)
-            print('Timer: {:.4f} sec. Remaining: {}.'.format(
-                t1 - t0, str(timedelta(seconds=remaining_time)).split('.')[0]))
-            print('iter ' + repr(iteration) + '/' + repr(max_iter) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
+            print('Timer: %.4f sec.' % (t1 - t0))
+            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
             if args.visdom and args.send_images_to_visdom:
                 random_batch_index = np.random.randint(images.size(0))
                 viz.image(images.data[random_batch_index].cpu().numpy())
@@ -242,18 +233,21 @@ def train():
                 Y=torch.Tensor([loss_l.data[0], loss_c.data[0],
                                 loss_l.data[0] + loss_c.data[0]]).unsqueeze(0).cpu(),
                 win=lot,
-                update='append')
+                update='append'
+            )
             # hacky fencepost solution for 0th epoch plot
             if iteration == 0:
                 viz.line(
                     X=torch.zeros((1, 3)).cpu(),
-                    Y=torch.Tensor([loc_loss, conf_loss, loc_loss + conf_loss]).unsqueeze(0).cpu(),
-                        loc_loss + conf_loss]).unsqueeze(0).cpu(),
+                    Y=torch.Tensor([loc_loss, conf_loss,
+                                    loc_loss + conf_loss]).unsqueeze(0).cpu(),
                     win=epoch_lot,
-                    update=True)
+                    update=True
+                )
         if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_' + repr(iteration) + '.pth')
+            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_' +
+                       repr(iteration) + '.pth')
     torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
 
 
@@ -262,7 +256,7 @@ def adjust_learning_rate(optimizer, gamma, step):
     # Adapted from PyTorch Imagenet example:
     # https://github.com/pytorch/examples/blob/master/imagenet/main.py
     """
-    lr = args.lr * (gamma**(step))
+    lr = args.lr * (gamma ** (step))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
