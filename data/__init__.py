@@ -1,4 +1,5 @@
-from .voc0712 import VOCDetection, AnnotationTransform, detection_collate, VOC_CLASSES
+from .nexar2 import NexarDetection, AnnotationTransform, detection_collate, NEXAR_CLASSES
+
 from .config import *
 import cv2
 import numpy as np
@@ -6,7 +7,6 @@ import numpy as np
 
 def base_transform(image, size, mean):
     x = cv2.resize(image, (size, size)).astype(np.float32)
-    # x = cv2.resize(np.array(image), (size, size)).astype(np.float32)
     x -= mean
     x = x.astype(np.float32)
     return x

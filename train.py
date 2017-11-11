@@ -5,17 +5,16 @@ from datetime import timedelta
 
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 import torch.nn.init as init
-from torch.autograd import Variable
 import torch.utils.data as data
 
-from data import v2, v1, AnnotationTransform, VOCDetection, detection_collate, VOCroot, VOC_CLASSES
-from utils.augmentations import SSDAugmentation
+
+from data import v2, v1, AnnotationTransform, NexarDetection, detection_collate, NEXAR_CLASSES
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
+
 
 
 def str2bool(v):
@@ -32,8 +31,8 @@ parser.add_argument('--resume', default=None, type=str, help='Resume from checkp
 parser.add_argument(
     '--num_workers', default=2, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--iterations', default=120000, type=int, help='Number of training iterations')
-parser.add_argument(
-    '--start_iter',
+parser.add_argument('--start_iter', default=0, type=int,
+                    help='Begin counting iterations starting from this value (should be used with resume)')
     default=0,
     type=int,
     help='Begin counting iterations starting from this value (should be used with resume)')
@@ -45,14 +44,14 @@ parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight dec
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
 parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss at each iteration')
 parser.add_argument(
-    '--visdom', default=False, type=str2bool, help='Use visdom to for loss visualization')
-parser.add_argument(
+parser.add_argument('--send_images_to_visdom', type=str2bool, default=False,
+                    help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
     '--send_images_to_visdom',
     type=str2bool,
     default=False,
     help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
-parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
+parser.add_argument('--root', default='data', help='Location of Nexar root directory')
 parser.add_argument(
     '--validate_dataset',
     default=False,
@@ -75,12 +74,11 @@ cfg = (v1, v2)[args.version == 'v2']
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
-train_sets = [('2012', 'trainval')]
+train_sets = 'train'
 # train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
-# train_sets = 'train'
 ssd_dim = 300    # only support 300 and 512 now
 means = (104, 117, 123)    # only support voc now
-num_classes = len(VOC_CLASSES) + 1
+num_classes = len(NEXAR_CLASSES) + 1
 batch_size = args.batch_size
 accum_batch_size = 32
 iter_size = accum_batch_size / batch_size
@@ -90,8 +88,11 @@ stepvalues = (80000, 100000, 120000)
 gamma = 0.1
 momentum = 0.9
 
+root = Path(args.root)
+
 if args.visdom:
     import visdom
+
     viz = visdom.Visdom()
 
 ssd_net = build_ssd('train', ssd_dim, num_classes)
@@ -105,6 +106,7 @@ if args.resume:
     print('Resuming training, loading {}...'.format(args.resume))
     ssd_net.load_weights(args.resume)
 else:
+    # TODO If can not find weights should download them
     vgg_weights = torch.load(args.save_folder + args.basenet)
     print('Loading base network...')
     ssd_net.vgg.load_state_dict(vgg_weights)
@@ -144,7 +146,7 @@ def train():
     epoch = 0
     print('Loading Dataset...')
 
-    dataset = VOCDetection(args.voc_root, train_sets,
+    dataset = NexarDetection(root, train_sets, SSDAugmentation(
                            SSDAugmentation(ssd_dim, means), AnnotationTransform())
 
     if args.validate_dataset:
@@ -195,7 +197,7 @@ def train():
                 viz.line(
                     X=torch.ones((1, 3)).cpu() * epoch,
                     Y=torch.Tensor([loc_loss, conf_loss, loc_loss + conf_loss]).unsqueeze(0).cpu() /
-                    epoch_size,
+                        loc_loss + conf_loss]).unsqueeze(0).cpu() / epoch_size,
                     win=epoch_lot,
                     update='append')
             # reset epoch loss counters
@@ -246,6 +248,7 @@ def train():
                 viz.line(
                     X=torch.zeros((1, 3)).cpu(),
                     Y=torch.Tensor([loc_loss, conf_loss, loc_loss + conf_loss]).unsqueeze(0).cpu(),
+                        loc_loss + conf_loss]).unsqueeze(0).cpu(),
                     win=epoch_lot,
                     update=True)
         if iteration % 5000 == 0:
