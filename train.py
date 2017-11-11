@@ -70,7 +70,6 @@ if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
 train_sets = 'train'
-# train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
 ssd_dim = 300  # only support 300 and 512 now
 means = (104, 117, 123)  # only support voc now
 num_classes = len(NEXAR_CLASSES) + 1
