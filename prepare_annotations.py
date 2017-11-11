@@ -25,13 +25,30 @@ def save_annotation(x):
     df.loc[:, 'width'] = width
     df.loc[:, 'height'] = height
 
+    # Safety checks
+    ind = df['width'] >= df['x1']
+    df.loc[ind, 'x1'] = width - 1
+
+    ind = df['height'] >= df['y1']
+    df.loc[ind, 'y1'] = height - 1
+
+    ind = df['x0'] < 0
+    df.loc[ind, 'x0'] = 0
+
+    ind = df['y0'] < 0
+    df.loc[ind, 'y0'] = 0
+
+    ind = (df['x0'] >= df['x1']) | (df['y0'] >= df['y1'])
+    df = df[~ind]
+
     df.loc[:, 'x0'] /= width
     df.loc[:, 'x1'] /= width
 
     df.loc[:, 'y0'] /= height
     df.loc[:, 'y1'] /= height
 
-    df.to_csv(str(annotation_path / (file_name[:-4] + '.csv')), index=False)
+    if df.shape[0] != 0:
+        df.to_csv(str(annotation_path / (file_name[:-4] + '.csv')), index=False)
 
 
 if __name__ == '__main__':
