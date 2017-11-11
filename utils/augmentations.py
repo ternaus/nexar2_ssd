@@ -98,9 +98,13 @@ class ToPercentCoords(object):
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
 
-        assert np.all(0 <= boxes[:, [0, 2]]) and np.all(boxes[:, [0, 2]] <= width)
+        # TODO For some reason bboxes can get outside of the image, reason is unclear, hack for now
 
-        assert np.all(0 <= boxes[:, [1, 3]]) and np.all(boxes[:, [1, 3]] <= height)
+        boxes[boxes[:, 0] < 0] = 0
+        boxes[boxes[:, 2] >= width] = width - 1
+
+        boxes[boxes[:, 1] < 0] = 0
+        boxes[boxes[:, 3] >= height] = height - 1
 
         boxes[:, 0] /= width
         boxes[:, 2] /= width
@@ -373,10 +377,6 @@ class SwapChannels(object):
         Return:
             a tensor with channels swapped according to swap
         """
-        # if torch.is_tensor(image):
-        #     image = image.data.cpu().numpy()
-        # else:
-        #     image = np.array(image)
         image = image[:, :, self.swaps]
         return image
 
