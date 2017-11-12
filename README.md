@@ -9,12 +9,8 @@ Code is heavily based on (https://github.com/amdegroot/ssd.pytorch)
 
 ### Table of Contents
 - <a href='#installation'>Installation</a>
-- <a href='#datasets'>Datasets</a>
 - <a href='#training-ssd'>Train</a>
 - <a href='#evaluation'>Evaluate</a>
-- <a href='#performance'>Performance</a>
-- <a href='#demos'>Demos</a>
-- <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
 
 &nbsp;
@@ -69,10 +65,8 @@ python -m ssd_pytorch.eval
 You can specify the parameters listed in the `eval.py` file by flagging them or manually changing them.  
 
 
-<img align="left" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_examples.png">
-
-
 ## References
+- [PyTorch implementation of SSD](https://github.com/amdegroot/ssd.pytorch)
 - Wei Liu, et al. "SSD: Single Shot MultiBox Detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).
 - [Original Implementation (CAFFE)](https://github.com/weiliu89/caffe/tree/ssd)
 - A huge thank you to [Alex Koltun](https://github.com/alexkoltun) and his team at [Webyclip](webyclip.com) for their help in finishing the data augmentation portion.
