@@ -27,7 +27,7 @@ parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) a
 parser.add_argument('--basenet', default='vgg16_reducedfc.pth', help='pretrained base model')
 parser.add_argument(
     '--jaccard_threshold', default=0.5, type=float, help='Min Jaccard index for matching')
-parser.add_argument('--batch_size', default=16, type=int, help='Batch size for training')
+parser.add_argument('--batch_size', default=8, type=int, help='Batch size for training')
 parser.add_argument('--resume', default=None, type=str, help='Resume from checkpoint')
 parser.add_argument(
     '--num_workers', default=2, type=int, help='Number of workers used in dataloading')
@@ -70,12 +70,12 @@ if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
 train_sets = 'train'
-ssd_dim = 300  # only support 300 and 512 now
+ssd_dim = 512  # only support 300 and 512 now
 means = (104, 117, 123)  # only support voc now
 num_classes = len(NEXAR_CLASSES) + 1
 batch_size = args.batch_size
 accum_batch_size = 32
-iter_size = accum_batch_size / batch_size
+# iter_size = accum_batch_size / batch_size
 max_iter = args.iterations
 weight_decay = 0.0005
 stepvalues = (80000, 100000, 120000)
@@ -245,7 +245,7 @@ def train():
                 )
         if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_' +
+            torch.save(ssd_net.state_dict(), 'weights/ssd{ssd_dim}_0712_'.format(ssd_dim=ssd_dim) +
                        repr(iteration) + '.pth')
     torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
 
