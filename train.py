@@ -14,6 +14,7 @@ from data import v2, v1, AnnotationTransform, NexarDetection, detection_collate,
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
 from utils.augmentations import SSDAugmentation
+from tqdm import tqdm
 
 
 def str2bool(v):
@@ -161,7 +162,7 @@ def train():
         collate_fn=detection_collate,
         pin_memory=args.cuda)
 
-    for iteration in range(args.start_iter, args.iterations):
+    for iteration in tqdm(range(args.start_iter, args.iterations)):
         if (not batch_iterator) or (iteration % epoch_size == 0):
             # create batch iterator
             batch_iterator = iter(data_loader)
