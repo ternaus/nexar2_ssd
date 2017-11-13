@@ -5,23 +5,21 @@
 """
 
 from __future__ import print_function
-import sys
-import os
-import time
-import argparse
-import numpy as np
-import pickle
 
+import argparse
+import os
+import pickle
+import sys
+import time
+
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 
-from data import VOCroot
-from data import VOC_CLASSES as labelmap
-
-from data import AnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
+from data import AnnotationTransform, BaseTransform
+from data import NEXAR_CLASSES as labelmap
 from ssd import build_ssd
-
 
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
@@ -57,15 +55,14 @@ else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
 annopath = os.path.join(args.voc_root, 'VOC2007', 'Annotations', '%s.xml')
-imgpath = os.path.join(args.voc_root, 'VOC2007', 'JPEGImages', '%s.jpg')
-imgsetpath = os.path.join(args.voc_root, 'VOC2007', 'ImageSets', 'Main', '{:s}.txt')
-YEAR = '2007'
-devkit_path = VOCroot + 'VOC' + YEAR
+imgpath = os.path.join(args.voc_root, 'train')
 dataset_mean = (104, 117, 123)
 set_type = 'test'
 
+
 class Timer(object):
     """A simple timer."""
+
     def __init__(self):
         self.total_time = 0.
         self.calls = 0
@@ -137,7 +134,7 @@ def write_voc_results_file(all_boxes, dataset):
         filename = get_voc_results_file_template(set_type, cls)
         with open(filename, 'wt') as f:
             for im_ind, index in enumerate(dataset.ids):
-                dets = all_boxes[cls_ind+1][im_ind]
+                dets = all_boxes[cls_ind + 1][im_ind]
                 if dets == []:
                     continue
                 # the VOCdevkit expects 1-based indices
@@ -159,8 +156,8 @@ def do_python_eval(output_dir='output', use_07=True):
     for i, cls in enumerate(labelmap):
         filename = get_voc_results_file_template(set_type, cls)
         rec, prec, ap = voc_eval(
-           filename, annopath, imgsetpath.format(set_type), cls, cachedir,
-           ovthresh=0.5, use_07_metric=use_07_metric)
+            filename, annopath, imgsetpath.format(set_type), cls, cachedir,
+            ovthresh=0.5, use_07_metric=use_07_metric)
         aps += [ap]
         print('AP for {} = {:.4f}'.format(cls, ap))
         with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
@@ -238,11 +235,11 @@ cachedir: Directory for caching the annotations
 [use_07_metric]: Whether to use VOC07's 11 point AP computation
    (default False)
 """
-# assumes detections are in detpath.format(classname)
-# assumes annotations are in annopath.format(imagename)
-# assumes imagesetfile is a text file with each line an image name
-# cachedir caches the annotations in a pickle file
-# first load gt
+    # assumes detections are in detpath.format(classname)
+    # assumes annotations are in annopath.format(imagename)
+    # assumes imagesetfile is a text file with each line an image name
+    # cachedir caches the annotations in a pickle file
+    # first load gt
     if not os.path.isdir(cachedir):
         os.mkdir(cachedir)
     cachefile = os.path.join(cachedir, 'annots.pkl')
@@ -257,7 +254,7 @@ cachedir: Directory for caching the annotations
             recs[imagename] = parse_rec(annopath % (imagename))
             if i % 100 == 0:
                 print('Reading annotation for {:d}/{:d}'.format(
-                   i + 1, len(imagenames)))
+                    i + 1, len(imagenames)))
         # save
         print('Saving cached annotations to {:s}'.format(cachefile))
         with open(cachefile, 'wb') as f:
@@ -357,7 +354,7 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
     #    all_boxes[cls][image] = N x 5 array of detections in
     #    (x1, y1, x2, y2, score)
     all_boxes = [[[] for _ in range(num_images)]
-                 for _ in range(len(labelmap)+1)]
+                 for _ in range(len(labelmap) + 1)]
 
     # timers
     _t = {'im_detect': Timer(), 'misc': Timer()}
@@ -408,8 +405,8 @@ def evaluate_detections(box_list, output_dir, dataset):
 
 if __name__ == '__main__':
     # load net
-    num_classes = len(VOC_CLASSES) + 1 # +1 background
-    net = build_ssd('test', 300, num_classes) # initialize SSD
+    num_classes = len(VOC_CLASSES) + 1  # +1 background
+    net = build_ssd('test', 300, num_classes)  # initialize SSD
     net.load_state_dict(torch.load(args.trained_model))
     net.eval()
     print('Finished loading model!')

@@ -1,26 +1,26 @@
-from __future__ import print_function
-import os
 import argparse
-
+from pathlib import Path
+import utils.utils
 import torch
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
+from tqdm import tqdm
+import pandas as pd
 
-from data import VOCroot, VOC_CLASSES as labelmap
-from data import AnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
+from data import AnnotationTransform, NexarDetection, BaseTransform, NEXAR_CLASSES
 from ssd import build_ssd
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
+parser.add_argument('--trained_model',
+                    default='weights/ssd512_0712_35000.pth', type=str,
+                    help='Trained state_dict file path to open')
+parser.add_argument('--save_folder', default='eval', type=str, help='Dir to save results')
 parser.add_argument(
-    '--trained_model',
-    default='weights/ssd_300_VOC0712.pth',
-    type=str,
-    help='Trained state_dict file path to open')
-parser.add_argument('--save_folder', default='eval/', type=str, help='Dir to save results')
-parser.add_argument(
-    '--visual_threshold', default=0.6, type=float, help='Final confidence threshold')
-parser.add_argument('--cuda', default=False, type=bool, help='Use cuda to train model')
-parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
+    '--visual_threshold', default=0.01, type=float, help='Final confidence threshold')
+parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
+parser.add_argument('--root', default='data', help='Location of Nexar root directory')
+parser.add_argument('--input_path', default='data/test', help='Location of Nexar test directory')
+parser.add_argument('--ssd_type', default=300, type=int, help='type of the SSD 300 or 512')
 
 args = parser.parse_args()
 
@@ -29,60 +29,76 @@ for arg in vars(args):
     print('    {}: {}'.format(arg, getattr(args, arg)))
 print()
 
-if not os.path.exists(args.save_folder):
-    os.mkdir(args.save_folder)
+Path(args.save_folder).mkdir(exist_ok=True)
 
 
-def test_net(save_folder, net, cuda, testset, transform, thresh):
+def cuda(x):
+    return x.cuda() if torch.cuda.is_available else x
+
+
+def variable(x, volatile=False):
+    if isinstance(x, (list, tuple)):
+        return [variable(y, volatile=volatile) for y in x]
+    return cuda(Variable(x, volatile=volatile))
+
+
+def test_net(save_folder: Path, net, input_path: Path, transform, threshold: float):
     # dump predictions and assoc. ground truth to text file for now
-    filename = save_folder + 'test1.txt'
-    num_images = len(testset)
-    for i in range(num_images):
-        print('Testing image {:d}/{:d}....'.format(i + 1, num_images))
-        img = testset.pull_image(i)
-        img_id, annotation = testset.pull_anno(i)
+
+    temp = []
+
+    for file_name in tqdm(sorted(list(input_path.glob('*')))):
+        img = utils.utils.load_image(file_name)
+
         x = torch.from_numpy(transform(img)[0]).permute(2, 0, 1)
         x = Variable(x.unsqueeze(0))
 
         if cuda:
             x = x.cuda()
 
-        y = net(x)  # forward pass
+        y = net(x)
         detections = y.data
         # scale each detection back up to the image
         scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
-        for i in range(detections.size(1)):
+
+        for i in range(detections.size(1) - 1):  # -1 because we want to exclude background
             j = 0
-            while detections[0, i, j, 0] >= 0.6:
+
+            while detections[0, i, j, 0] >= threshold:
                 score = detections[0, i, j, 0]
-                label_name = labelmap[i - 1]
+                label_name = NEXAR_CLASSES[i - 1]
                 pt = (detections[0, i, j, 1:] * scale).cpu().numpy()
-                coords = (pt[0], pt[1], pt[2], pt[3])
-                with open(filename, mode='a') as f:
-                    f.write(
-                        img_id + ',' + label_name + ',' + str(score) + ',' +
-                        ','.join(str(c) for c in coords) + '\n')
+                temp += [(pt[0], pt[1], pt[2], pt[2], str(file_name.name), label_name, score)]
                 j += 1
+
+    df = pd.DataFrame(temp, columns=['x_min', 'y_min', 'x_max', 'y_max', 'class_name', 'score'])
+    df.to_csv(str(save_folder / 'preds.csv'), index=False)
 
 
 if __name__ == '__main__':
     # load net
-    num_classes = len(VOC_CLASSES) + 1  # +1 background
-    net = build_ssd('test', 300, num_classes)  # initialize SSD
+
+    num_classes = len(NEXAR_CLASSES) + 1  # +1 background
+    net = build_ssd('test', args.ssd_type, num_classes)  # initialize SSD
     net.load_state_dict(torch.load(args.trained_model))
     net.eval()
+    if args.cuda:
+        net = net.cuda()
+        cudnn.benchmark = True
+
     print('Finished loading model!')
     # load data
-    testset = VOCDetection(
-        args.voc_root, [('2012', 'test')], None, AnnotationTransform(), with_target=False)
+    root = Path(args.root)
+
+    testset = NexarDetection(root, 'test', transform=None,
+                             target_transform=AnnotationTransform(), dataset_name=False)
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
     test_net(
-        args.save_folder,
+        Path(args.save_folder),
         net,
-        args.cuda,
-        testset,
-        BaseTransform(300, (104, 117, 123)),
-        thresh=args.visual_threshold)
+        Path(args.input_path),
+        BaseTransform(args.ssd_type, (104, 117, 123)),
+        threshold=args.visual_threshold)
