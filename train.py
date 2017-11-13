@@ -162,7 +162,9 @@ def train():
         collate_fn=detection_collate,
         pin_memory=args.cuda)
 
-    for iteration in tqdm(range(args.start_iter, args.iterations)):
+    tq = tqdm(range(args.start_iter, args.iterations))
+
+    for iteration in tq:
         if (not batch_iterator) or (iteration % epoch_size == 0):
             # create batch iterator
             batch_iterator = iter(data_loader)
@@ -195,8 +197,10 @@ def train():
         optimizer.step()
         loc_loss += loss_l.data[0]
         conf_loss += loss_c.data[0]
-        if iteration % 10 == 0:
-            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
+
+        tq.set_postfix(loss='{:.5f}'.format(loss.data[0]),
+                       loss_l='{:.5f}'.format(loss_l.data[0]),
+                       loss_c='{:.5f}'.format(loss_c.data[0]))
 
         if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
