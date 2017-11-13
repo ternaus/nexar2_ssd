@@ -65,7 +65,7 @@ class MultiBoxLoss(nn.Module):
                 shape: [batch_size, num_objs,5] (last idx is the label).
         """
         loc_data, conf_data, priors = predictions
-        num = loc_data.size(0)
+        num = loc_data.size(0)  # batch size
         priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
         # num_classes = self.num_classes
@@ -81,15 +81,16 @@ class MultiBoxLoss(nn.Module):
         if self.use_gpu:
             loc_t = loc_t.cuda()
             conf_t = conf_t.cuda()
+
         # wrap targets
         loc_t = Variable(loc_t, requires_grad=False)
         conf_t = Variable(conf_t, requires_grad=False)
 
         pos = conf_t > 0
-        # num_pos = pos.sum(keepdim=True)
+        num_pos = pos.sum(keepdim=True)
 
         # Localization Loss (Smooth L1)
-        # Shape: [batch,num_priors,4]
+        # Shape: [batch, num_priors, 4]
         pos_idx = pos.unsqueeze(pos.dim()).expand_as(loc_data)
         loc_p = loc_data[pos_idx].view(-1, 4)
         loc_t = loc_t[pos_idx].view(-1, 4)
@@ -102,6 +103,10 @@ class MultiBoxLoss(nn.Module):
 
         # Hard Negative Mining
         loss_c[pos] = 0  # filter out pos boxes for now
+
+        # loss_c = loss_c.index_fill(pos, 0)
+        # assert loss_c.size() == pos.size()
+
         loss_c = loss_c.view(num, -1)
         _, loss_idx = loss_c.sort(1, descending=True)
         _, idx_rank = loss_idx.sort(1)

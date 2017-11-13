@@ -166,12 +166,6 @@ def train():
 
     iteration = 0
 
-    save = lambda ep: torch.save({
-        'model': net.state_dict(),
-        'iteration': repr(iteration),
-    }, 'weights/ssd{ssd_dim}_'.format(ssd_dim=ssd_dim) +
-       repr(iteration) + '.pth')
-
     try:
         for iteration in tq:
             if (not batch_iterator) or (iteration % epoch_size == 0):
@@ -213,14 +207,16 @@ def train():
 
             if iteration % 5000 == 0 and iteration > 0:
                 print('Saving state, iter:', iteration)
-                save(iteration)
+                torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
 
-        torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
+        torch.save(ssd_net.state_dict(),
+                   str(Path(args.save_folder) / (str(args.ssd_type) + '_' + str(iteration) + '.pth')))
 
     except KeyboardInterrupt:
         tq.close()
         print('Ctrl+C, saving snapshot')
-        save(iteration)
+        torch.save(ssd_net.state_dict(),
+                   str(Path(args.save_folder) / (str(args.ssd_type) + '_' + str(iteration) + '.pth')))
         print('done.')
         return
 
