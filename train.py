@@ -9,12 +9,12 @@ import torch.nn.init as init
 import torch.optim as optim
 import torch.utils.data as data
 from torch.autograd import Variable
+from tqdm import tqdm
 
 from data import v2, v1, AnnotationTransform, NexarDetection, detection_collate, NEXAR_CLASSES
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
 from utils.augmentations import SSDAugmentation
-from tqdm import tqdm
 
 
 def str2bool(v):
@@ -164,49 +164,65 @@ def train():
 
     tq = tqdm(range(args.start_iter, args.iterations))
 
-    for iteration in tq:
-        if (not batch_iterator) or (iteration % epoch_size == 0):
-            # create batch iterator
-            batch_iterator = iter(data_loader)
+    iteration = 0
 
-        if iteration in stepvalues:
-            step_index += 1
-            adjust_learning_rate(optimizer, args.gamma, step_index)
-            # reset epoch loss counters
-            loc_loss = 0
-            conf_loss = 0
-            epoch += 1
+    save = lambda ep: torch.save({
+        'model': net.state_dict(),
+        'iteration': repr(iteration),
+    }, 'weights/ssd{ssd_dim}_'.format(ssd_dim=ssd_dim) +
+       repr(iteration) + '.pth')
 
-        # load train data
-        images, targets = next(batch_iterator)
+    try:
+        for iteration in tq:
+            if (not batch_iterator) or (iteration % epoch_size == 0):
+                # create batch iterator
+                batch_iterator = iter(data_loader)
 
-        if args.cuda:
-            images = Variable(images.cuda())
-            targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
-        else:
-            images = Variable(images)
-            targets = [Variable(anno, volatile=True) for anno in targets]
+            if iteration in stepvalues:
+                step_index += 1
+                adjust_learning_rate(optimizer, args.gamma, step_index)
+                # reset epoch loss counters
+                loc_loss = 0
+                conf_loss = 0
+                epoch += 1
 
-        # forward
-        out = net(images)
-        # backprop
-        optimizer.zero_grad()
-        loss_l, loss_c = criterion(out, targets)
-        loss = loss_l + loss_c
-        loss.backward()
-        optimizer.step()
-        loc_loss += loss_l.data[0]
-        conf_loss += loss_c.data[0]
+            # load train data
+            images, targets = next(batch_iterator)
 
-        tq.set_postfix(loss='{:.5f}'.format(loss.data[0]),
-                       loss_l='{:.5f}'.format(loss_l.data[0]),
-                       loss_c='{:.5f}'.format(loss_c.data[0]))
+            if args.cuda:
+                images = Variable(images.cuda())
+                targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
+            else:
+                images = Variable(images)
+                targets = [Variable(anno, volatile=True) for anno in targets]
 
-        if iteration % 5000 == 0:
-            print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd{ssd_dim}_0712_'.format(ssd_dim=ssd_dim) +
-                       repr(iteration) + '.pth')
-    torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
+            # forward
+            out = net(images)
+            # backprop
+            optimizer.zero_grad()
+            loss_l, loss_c = criterion(out, targets)
+            loss = loss_l + loss_c
+            loss.backward()
+            optimizer.step()
+            loc_loss += loss_l.data[0]
+            conf_loss += loss_c.data[0]
+
+            tq.set_postfix(loss='{:.5f}'.format(loss.data[0]),
+                           loss_l='{:.5f}'.format(loss_l.data[0]),
+                           loss_c='{:.5f}'.format(loss_c.data[0]))
+
+            if iteration % 5000 == 0 and iteration > 0:
+                print('Saving state, iter:', iteration)
+                save(iteration)
+
+        torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
+
+    except KeyboardInterrupt:
+        tq.close()
+        print('Ctrl+C, saving snapshot')
+        save(iteration)
+        print('done.')
+        return
 
 
 def adjust_learning_rate(optimizer, gamma, step: int):
