@@ -12,7 +12,7 @@ from ssd import build_ssd
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
 parser.add_argument('--trained_model',
-                    default='weights/ssd512_0712_35000.pth', type=str,
+                    default='weights/ssd512_0712_85000.pth', type=str,
                     help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='eval', type=str, help='Dir to save results')
 parser.add_argument(
@@ -21,6 +21,8 @@ parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train m
 parser.add_argument('--root', default='data', help='Location of Nexar root directory')
 parser.add_argument('--input_path', default='data/test', help='Location of Nexar test directory')
 parser.add_argument('--ssd_type', default=300, type=int, help='type of the SSD 300 or 512')
+parser.add_argument('--device_ids', default='0', type=str, help='cuda device ids 0,1,2,3')
+
 
 args = parser.parse_args()
 
@@ -47,8 +49,11 @@ def test_net(save_folder: Path, net, input_path: Path, transform, threshold: flo
 
     temp = []
 
-    for file_name in tqdm(sorted(list(input_path.glob('*')))):
+    for file_name in tqdm(sorted(list(input_path.glob('*')))[:10]):
         img = utils.utils.load_image(file_name)
+
+        height, width, _ = img.shape
+        scale = torch.Tensor([width, height, width, height])
 
         x = torch.from_numpy(transform(img)[0]).permute(2, 0, 1)
         x = Variable(x.unsqueeze(0))
@@ -59,11 +64,9 @@ def test_net(save_folder: Path, net, input_path: Path, transform, threshold: flo
         y = net(x)
         detections = y.data
         # scale each detection back up to the image
-        scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
 
         for i in range(detections.size(1) - 1):  # -1 because we want to exclude background
             j = 0
-
             while detections[0, i, j, 0] >= threshold:
                 score = detections[0, i, j, 0]
                 label_name = NEXAR_CLASSES[i - 1]
@@ -82,7 +85,10 @@ if __name__ == '__main__':
     net = build_ssd('test', args.ssd_type, num_classes)  # initialize SSD
     net.load_state_dict(torch.load(args.trained_model))
     net.eval()
+
     if args.cuda:
+        device_ids = [int(x) for x in args.device_ids.split(',')]
+        net = torch.nn.DataParallel(net, device_ids=device_ids)
         net = net.cuda()
         cudnn.benchmark = True
 

@@ -99,6 +99,7 @@ class NexarDetection(data.Dataset):
 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
+
         return torch.from_numpy(img).permute(2, 0, 1), target, height, width
 
     def pull_image(self, index):
