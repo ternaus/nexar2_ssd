@@ -9,7 +9,8 @@ def load_image(path):
     :param path:
     :return: image in RGB format
     """
-    return cv2.imread(str(path))
+    img = cv2.imread(str(path))
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 
 def cuda(x):

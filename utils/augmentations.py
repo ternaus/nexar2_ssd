@@ -166,15 +166,15 @@ class RandomLightingNoise(object):
 
 
 class ConvertColor(object):
-    def __init__(self, current='BGR', transform='HSV'):
+    def __init__(self, current='RGB', transform='HSV'):
         self.transform = transform
         self.current = current
 
     def __call__(self, image, boxes=None, labels=None):
-        if self.current == 'BGR' and self.transform == 'HSV':
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        elif self.current == 'HSV' and self.transform == 'BGR':
-            image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
+        if self.current == 'RGB' and self.transform == 'HSV':
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        elif self.current == 'HSV' and self.transform == 'RGB':
+            image = cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
         else:
             raise NotImplementedError
         return image, boxes, labels
@@ -322,6 +322,10 @@ class RandomSampleCrop(object):
 
 
 class Expand(object):
+    """
+    TODO figure out what is happening here
+    """
+
     def __init__(self, mean):
         self.mean = mean
 
@@ -387,7 +391,7 @@ class PhotometricDistort(object):
             ConvertColor(transform='HSV'),
             RandomSaturation(),
             RandomHue(),
-            ConvertColor(current='HSV', transform='BGR'),
+            ConvertColor(current='HSV', transform='RGB'),
             RandomContrast()
         ]
         self.rand_brightness = RandomBrightness()
@@ -405,7 +409,7 @@ class PhotometricDistort(object):
 
 
 class SSDAugmentation(object):
-    def __init__(self, size=300, mean=(104, 117, 123)):
+    def __init__(self, size=None, mean=None):
         self.mean = mean
         self.size = size
         self.augment = Compose([
