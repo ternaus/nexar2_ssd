@@ -207,7 +207,8 @@ def train():
 
             if iteration % 5000 == 0 and iteration > 0:
                 print('Saving state, iter:', iteration)
-                torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
+                torch.save(ssd_net.state_dict(),
+                           str(Path(args.save_folder) / (str(args.ssd_type) + '_' + str(iteration) + '.pth')))
 
         torch.save(ssd_net.state_dict(),
                    str(Path(args.save_folder) / (str(args.ssd_type) + '_' + str(iteration) + '.pth')))
